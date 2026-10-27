@@ -21,10 +21,9 @@ class PspElfLoader : ElfLoader() {
         private const val DEFAULT = false
         private const val COMMAND_LINE = "${COMMAND_LINE_ARG_PREFIX}-useRebootBinTypeBRelocationMapping"
 
-        fun toOption(): Option = Option.newBoolean(NAME)
-          .value(DEFAULT)
-          .commandLineArgument(COMMAND_LINE)
-          .build()
+        // Ghidra-Rare: the Option constructor (present in Ghidra 12.1 and 12.2) instead of the 12.2-only
+        // Option.newBoolean builder, so the module also builds for Ghidra 12.1.x
+        fun toOption(): Option = Option(NAME, DEFAULT, Boolean::class.javaObjectType, COMMAND_LINE)
 
         fun getValue(options: List<Option>): Boolean {
           return OptionUtils.getOption(NAME, options, DEFAULT)

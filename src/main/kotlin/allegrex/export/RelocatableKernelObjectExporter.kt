@@ -61,9 +61,9 @@ class RelocatableKernelObjectExporter : ProgramExporter(
         private const val NAME = "Global data symbols names (regex)"
         const val DEFAULT = "^g_.+\$"
 
-        fun toOption(): Option = Option.newString(NAME)
-          .value(DEFAULT)
-          .build()
+        // Ghidra-Rare: the Option constructor (present in Ghidra 12.1 and 12.2) instead of the 12.2-only
+        // Option.newString builder, so the module also builds for Ghidra 12.1.x
+        fun toOption(): Option = Option(NAME, DEFAULT, String::class.java, null)
 
         fun getValue(options: List<Option>): String = OptionUtils.getOption(NAME, options, DEFAULT)
       }
