@@ -53,8 +53,19 @@ dependencies {
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
 }
 
+// Ghidra-Rare: compile Kotlin for the Java release of the Ghidra being built against
+// (application.java.compiler: 21 for Ghidra 12.1.x, 25 for 12.2) instead of a fixed JVM 25 toolchain.
+def ghidraAppProps = new Properties()
+new File(ghidraInstallDir, "Ghidra/application.properties").withInputStream { ghidraAppProps.load(it) }
+def ghidraJavaRelease = ghidraAppProps.getProperty('application.java.compiler')
 kotlin {
-  jvmToolchain(25)
+  compilerOptions {
+    jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget(ghidraJavaRelease)
+  }
+}
+java {
+  sourceCompatibility = ghidraJavaRelease
+  targetCompatibility = ghidraJavaRelease
 }
 
 def ghidraUserDir
@@ -118,4 +129,9 @@ tasks.register('ghidraCompileSleigh', Exec) {
 
 tasks.named('buildExtension') {
   dependsOn tasks.named('ghidraCompileSleigh')
+}
+
+// Ghidra-Rare: release zips carry only what Ghidra loads (no build wrapper, Kotlin session data, tests or generators)
+tasks.named('buildExtension') {
+  exclude 'gradle/**', '.kotlin/**', '.editorconfig', 'test/**', 'tools/**'
 }
