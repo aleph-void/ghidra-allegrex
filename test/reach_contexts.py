@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+"""Context sets for Reach.java and a VFPU word corpus that, decoded under every set, reaches every
+prefix-lane constructor.
+
+  reach_contexts.py <contexts.txt> <vfpu.bin>
+"""
+import os
+import random
+import struct
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tools'))
+import gen_vfpu  # noqa: E402
+
+
+# (mask, value) of every non-VFPU instruction psp-objdump or rabbitizer decodes (derived from both, run as black
+# boxes, by flipping single bits of sample words); words built from them reach the core constructors whose
+# fixed fields random words rarely hit (mfhi, eret, the FPU conversions ...)
+BASE_MASKS = [(0xefe00000, 0x24000000), (0xfc000000, 0x08000000), (0xfc000000, 0x0c000000), (0xfc000000,
+    0x10000000), (0xfc000000, 0x14000000), (0xfc000000, 0x20000000), (0xfc000000, 0x24000000), (0xfc000000,
+    0x28000000), (0xfc000000, 0x2c000000), (0xfc000000, 0x30000000), (0xfc000000, 0x34000000), (0xfc000000,
+    0x38000000), (0xfc000000, 0x50000000), (0xfc000000, 0x54000000), (0xfc000000, 0x68000000), (0xfc000000,
+    0x74000000), (0xfc000000, 0x80000000), (0xfc000000, 0x84000000), (0xfc000000, 0x88000000), (0xfc000000,
+    0x8c000000), (0xfc000000, 0x90000000), (0xfc000000, 0x94000000), (0xfc000000, 0x98000000), (0xfc000000,
+    0x9c000000), (0xfc000000, 0xa0000000), (0xfc000000, 0xa4000000), (0xfc000000, 0xa8000000), (0xfc000000,
+    0xac000000), (0xfc000000, 0xb0000000), (0xfc000000, 0xb4000000), (0xfc000000, 0xb8000000), (0xfc000000,
+    0xbc000000), (0xfc000000, 0xc0000000), (0xfc000000, 0xc4000000), (0xfc000000, 0xcc000000), (0xfc000000,
+    0xe0000000), (0xfc000000, 0xe4000000), (0xfc00003f, 0x0000000c), (0xfc00003f, 0x0000000d), (0xfc00003f,
+    0x00000030), (0xfc00003f, 0x00000031), (0xfc00003f, 0x00000032), (0xfc00003f, 0x00000033), (0xfc00003f,
+    0x00000034), (0xfc00003f, 0x00000036), (0xfc00003f, 0x7c000000), (0xfc00003f, 0x7c000004), (0xfc0007ff,
+    0x00000004), (0xfc0007ff, 0x00000006), (0xfc0007ff, 0x00000007), (0xfc0007ff, 0x0000000a), (0xfc0007ff,
+    0x0000000b), (0xfc0007ff, 0x00000014), (0xfc0007ff, 0x0000001e), (0xfc0007ff, 0x0000001f), (0xfc0007ff,
+    0x00000020), (0xfc0007ff, 0x00000021), (0xfc0007ff, 0x00000022), (0xfc0007ff, 0x00000023), (0xfc0007ff,
+    0x00000024), (0xfc0007ff, 0x00000025), (0xfc0007ff, 0x00000026), (0xfc0007ff, 0x00000027), (0xfc0007ff,
+    0x0000002a), (0xfc0007ff, 0x0000002b), (0xfc0007ff, 0x0000002c), (0xfc0007ff, 0x0000002d), (0xfc0007ff,
+    0x00000046), (0xfc00ffff, 0x00000018), (0xfc00ffff, 0x00000019), (0xfc00ffff, 0x0000001a), (0xfc00ffff,
+    0x0000001b), (0xfc00ffff, 0x0000001c), (0xfc00ffff, 0x0000001d), (0xfc00ffff, 0x0000002e), (0xfc00ffff,
+    0x0000002f), (0xfc1f0000, 0x04000000), (0xfc1f0000, 0x04010000), (0xfc1f0000, 0x04020000), (0xfc1f0000,
+    0x04030000), (0xfc1f0000, 0x04080000), (0xfc1f0000, 0x04090000), (0xfc1f0000, 0x040a0000), (0xfc1f0000,
+    0x040b0000), (0xfc1f0000, 0x040c0000), (0xfc1f0000, 0x040e0000), (0xfc1f0000, 0x04100000), (0xfc1f0000,
+    0x04110000), (0xfc1f0000, 0x04120000), (0xfc1f0000, 0x04130000), (0xfc1f0000, 0x10000000), (0xfc1f0000,
+    0x14000000), (0xfc1f0000, 0x18000000), (0xfc1f0000, 0x1c000000), (0xfc1f0000, 0x50000000), (0xfc1f0000,
+    0x54000000), (0xfc1f0000, 0x58000000), (0xfc1f0000, 0x5c000000), (0xfc1f07ff, 0x00000009), (0xfe000000,
+    0x42000000), (0xfe000000, 0x46000000), (0xfe000000, 0x4a000000), (0xfe000000, 0x4e000000), (0xffe00000,
+    0x3c000000), (0xffe0003f, 0x00000000), (0xffe0003f, 0x00000002), (0xffe0003f, 0x00000003), (0xffe0003f,
+    0x00000038), (0xffe0003f, 0x0000003a), (0xffe0003f, 0x0000003b), (0xffe0003f, 0x0000003c), (0xffe0003f,
+    0x0000003e), (0xffe0003f, 0x0000003f), (0xffe0003f, 0x00200002), (0xffe0003f, 0x46000000), (0xffe0003f,
+    0x46000001), (0xffe0003f, 0x46000002), (0xffe0003f, 0x46000003), (0xffe007ff, 0x40000000), (0xffe007ff,
+    0x40200000), (0xffe007ff, 0x40400000), (0xffe007ff, 0x40800000), (0xffe007ff, 0x40a00000), (0xffe007ff,
+    0x40c00000), (0xffe007ff, 0x44000000), (0xffe007ff, 0x44200000), (0xffe007ff, 0x44400000), (0xffe007ff,
+    0x44800000), (0xffe007ff, 0x44a00000), (0xffe007ff, 0x44c00000), (0xffe007ff, 0x46000030), (0xffe007ff,
+    0x46000031), (0xffe007ff, 0x46000032), (0xffe007ff, 0x46000033), (0xffe007ff, 0x46000037), (0xffe007ff,
+    0x46000038), (0xffe007ff, 0x46000039), (0xffe007ff, 0x4600003a), (0xffe007ff, 0x4600003b), (0xffe007ff,
+    0x4600003c), (0xffe007ff, 0x4600003d), (0xffe007ff, 0x4600003e), (0xffe007ff, 0x4600003f), (0xffe007ff,
+    0x48000000), (0xffe007ff, 0x48400000), (0xffe007ff, 0x48800000), (0xffe007ff, 0x48c00000), (0xffe007ff,
+    0x70000024), (0xffe007ff, 0x7000003d), (0xffe007ff, 0x7c0000a0), (0xffe007ff, 0x7c000420), (0xffe0ffff,
+    0x70000024), (0xffff0000, 0x04010000), (0xffff0000, 0x04110000), (0xffff0000, 0x10000000), (0xffff0000,
+    0x41000000), (0xffff0000, 0x41010000), (0xffff0000, 0x41020000), (0xffff0000, 0x41030000), (0xffff0000,
+    0x45000000), (0xffff0000, 0x45010000), (0xffff0000, 0x45020000), (0xffff0000, 0x45030000), (0xffff003f,
+    0x46000005), (0xffff003f, 0x46000024), (0xffffffff, 0x00000000), (0xffffffff, 0x70000000)]
+
+
+def main():
+    rng = random.Random(5)
+    lines = []
+    k = 0
+    for c in range(2):
+        for x in range(4):
+            for a in range(2):
+                for n in range(2):
+                    kv = []
+                    for p in ('pfs', 'pft'):
+                        for i in range(4):
+                            kv += [f'{p}_c{i}={c}', f'{p}_x{i}={x}', f'{p}_a{i}={a}', f'{p}_n{i}={n}']
+                    for i in range(4):
+                        kv += [f'pfd_s{i}={k % 4}', f'pfd_m{i}={(k // 4) % 2}']
+                    lines.append(' '.join(kv))
+                    k += 1
+    open(sys.argv[1], 'w').write('\n'.join(lines) + '\n')
+    words = []
+    for name, mask, val, kinds in gen_vfpu.ENCODINGS:
+        for _ in range(6):
+            w = val | (rng.getrandbits(32) & ~mask & 0xffffffff)
+            for sh in (0, 8, 16):          # both register orientations (column / row)
+                words += [w & ~(1 << (sh + 5)), w | (1 << (sh + 5)) if not (mask >> (sh + 5)) & 1 else w]
+    for mask, val in BASE_MASKS:
+        for _ in range(4):
+            w = val | (rng.getrandbits(32) & ~mask & 0xffffffff)
+            words += [w, w & ~0x03ff07c0 | (val & 0x03ff07c0)]   # also with rd / sa / rt fields as fixed
+    for r in range(16):     # VMFVC of every control register (vs 0..15 with bit 15 set)
+        words.append(0xd0508000 | (r << 8) | rng.getrandbits(7))
+    open(sys.argv[2], 'wb').write(b''.join(struct.pack('<I', w) for w in words))
+    print(f'{len(lines)} context sets, {len(words)} words')
+
+
+if __name__ == '__main__':
+    main()

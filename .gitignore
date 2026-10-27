@@ -49,3 +49,6 @@ nb-configuration.xml
 build/
 /target
 lib/
+
+## Ghidra-Rare: test caches
+__pycache__/
