@@ -60,9 +60,21 @@ define register offset=0x2100 size=4 [
 define register offset=0x3000 size=4 [ hi lo ];
 
 # Define context bits
-define register offset=0x4000 size=4   contextreg;
+define register offset=0x4000 size=8   contextreg;
 define context contextreg
   PAIR_INSTRUCTION_FLAG=(0,0) noflow      # =1 paired instruction
+  # Ghidra-Rare: VFPU prefixes for the next instruction (VPFXS, VPFXT: swizzle XOR lane, abs, constant,
+  # negate per lane; VPFXD: saturation and write mask per lane). All zero = no prefix.
+  pfs_x0=(1,2) noflow pfs_x1=(3,4) noflow pfs_x2=(5,6) noflow pfs_x3=(7,8) noflow
+  pfs_a0=(9,9) noflow pfs_a1=(10,10) noflow pfs_a2=(11,11) noflow pfs_a3=(12,12) noflow
+  pfs_c0=(13,13) noflow pfs_c1=(14,14) noflow pfs_c2=(15,15) noflow pfs_c3=(16,16) noflow
+  pfs_n0=(17,17) noflow pfs_n1=(18,18) noflow pfs_n2=(19,19) noflow pfs_n3=(20,20) noflow
+  pfd_s0=(21,22) noflow pfd_s1=(23,24) noflow pfd_s2=(25,26) noflow pfd_s3=(27,28) noflow
+  pft_x0=(32,33) noflow pft_x1=(34,35) noflow pft_x2=(36,37) noflow pft_x3=(38,39) noflow
+  pft_a0=(40,40) noflow pft_a1=(41,41) noflow pft_a2=(42,42) noflow pft_a3=(43,43) noflow
+  pft_c0=(44,44) noflow pft_c1=(45,45) noflow pft_c2=(46,46) noflow pft_c3=(47,47) noflow
+  pft_n0=(48,48) noflow pft_n1=(49,49) noflow pft_n2=(50,50) noflow pft_n3=(51,51) noflow
+  pfd_m0=(52,52) noflow pfd_m1=(53,53) noflow pfd_m2=(54,54) noflow pfd_m3=(55,55) noflow
 ;
 
 # VFPU registers
@@ -212,6 +224,7 @@ define token instr(32)
     vpfxst_abs3 = (11,11)
     vpfxst_cst3 = (15,15)
     vpfxst_neg3 = (19,19)
+@include "allegrexVfpuFields.sinc"
 ;
 
 attach variables [ rs rt rd base ] [

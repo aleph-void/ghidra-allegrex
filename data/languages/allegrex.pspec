@@ -4,7 +4,6 @@
     <properties>
         <property key="addressesDoNotAppearDirectlyInCode" value="true"/>
         <property key="emulateInstructionStateModifierClass" value="allegrex.program.emulation.AllegrexEmulateInstructionStateModifier"/>
-        <property key="pcodeInjectLibraryClass" value="allegrex.pcode.AllegrexPcodeInjectLibrary"/>
     </properties>
     <programcounter register="pc"/>
     <context_data>
