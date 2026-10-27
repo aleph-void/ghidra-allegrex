@@ -3,6 +3,13 @@ ghidra-allegrex
 
 Ghidra processor module adding support for the Allegrex CPU used in the PlayStation Portable.
 
+> **Ghidra-Rare fork.** This is the [Ghidra-Rare](https://github.com/aleph-void/Ghidra-Rare) fork of kotcrab's
+> module (branch `ghidra-rare`). It gives every VFPU instruction real p-code semantics (including the
+> VPFXS / VPFXT / VPFXD prefixes), tightens the instruction decoding to what the PSP toolchain's disassembler and
+> rabbitizer accept, fixes several semantic errors found by differential testing, and adds a test suite. See
+> [GHIDRA-RARE.md](GHIDRA-RARE.md) for what was verified and how, and [CREDITS.md](CREDITS.md) for the authors and
+> the list of changes. Prebuilt zips for Ghidra 12.1.3, 12.1.4 and 12.2 are on this fork's Releases page.
+
 Features:
 
 - Support for PSP specific ELF relocation sections (type A and B).
@@ -10,14 +17,15 @@ Features:
 - Support for Allegrex specific instructions.
 - Processor type auto-detection for ELF files.
 - PSP calling convention support.
-- Disassembly and decompilation of VFPU instructions (see limitations below).
+- Disassembly and decompilation of VFPU instructions (see limitations below). In this fork the VFPU
+  instructions decompile to their lane-by-lane arithmetic, prefixes included.
 - Scripts for importing and exporting PPSSPP `.sym` files (function labels).
 - Support for exporting kernel modules as object files.
 
 ## Installation
 
 Download prebuilt package from the [Releases](https://github.com/kotcrab/ghidra-allegrex/releases/) section. Select release which matches
-your Ghidra version. Then depending on the version you're installing:
+your Ghidra version. Builds of the Ghidra-Rare fork (Ghidra 12.1.3, 12.1.4, 12.2) are on the fork's Releases page. Then depending on the version you're installing:
 
 ### Version 19 or newer
 
@@ -72,13 +80,19 @@ Raw binaries are also supported. In that case you will need to manually select A
 
 ## VFPU and other limitations
 
-- VFPU decompilation support is rather basic, almost every operation is converted to a function call such as `vadd_q(...)`.
-  - Semantics of `vpfxs`, `vpfxt` and `vpfxd` are not currently modeled in the decompiler.
+- ~~VFPU decompilation support is rather basic, almost every operation is converted to a function call such as `vadd_q(...)`.~~
+  Fixed in the Ghidra-Rare fork (#40): every VFPU instruction has p-code semantics; only the transcendental
+  functions (`vsin`, `vcos`, `vexp2`, `vlog2`, `vasin` ...), the random number generator (`vrnd*`) and `vwbn`
+  remain function calls.
+  - ~~Semantics of `vpfxs`, `vpfxt` and `vpfxd` are not currently modeled in the decompiler.~~ Fixed in the
+    Ghidra-Rare fork: the prefixes apply to the next VFPU instruction.
 - Second operand of `vfim.s` will be shown as an integer, should be shown as a half float. Sleigh does not support float
-  tokens.
-- Changing image base after importing is not supported for relocatable object files (`.o`).
-- For functions using 64-bit arguments you need to check "Use Custom Storage" and manually specify argument storage 
-  (this is caused by a [Ghidra issue](https://github.com/NationalSecurityAgency/ghidra/issues/2762)).
+  tokens. (Remaining: a display limit of SLEIGH; the value the instruction loads is computed correctly.)
+- Changing image base after importing is not supported for relocatable object files (`.o`). (Remaining.)
+- ~~For functions using 64-bit arguments you need to check "Use Custom Storage" and manually specify argument storage
+  (this is caused by a [Ghidra issue](https://github.com/NationalSecurityAgency/ghidra/issues/2762)).~~
+  Fixed in the Ghidra-Rare fork (#2): the compiler spec places 64-bit arguments in aligned register pairs and
+  64-bit results in v0:v1.
 
 ## Building
 
