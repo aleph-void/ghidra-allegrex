@@ -489,6 +489,8 @@ class VfpuGen(Gen):
                     w(f'{wd}: off is pfd_m{i}=0 & vd & vf_5_5=0 [ off = {col}; ] {{ export *[register]:4 off; }}')
                     w(f'{wd}: off is pfd_m{i}=0 & vd & vf_5_5=1 [ off = {row}; ] {{ export *[register]:4 off; }}')
         for sz, n in SIZES.items():
+            if sz not in 'tq':      # plain destination lanes: only VCRSP.T / VQMUL.Q use them
+                continue
             for i in range(n):
                 col, row = vec_lane_expr('vd', sz, str(i))
                 if row is None:

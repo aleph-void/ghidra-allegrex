@@ -911,11 +911,6 @@ wDq2: off is pfd_m2=0 & vd & vf_5_5=1 [ off = 0x5000 + 4 * (((vd >> 2) $and 7) *
 wDq3: is pfd_m3=1 { local d:4 = 0; export d; }
 wDq3: off is pfd_m3=0 & vd & vf_5_5=0 [ off = 0x5000 + 4 * (((vd >> 2) $and 7) * 16 + ((((vd >> 6) $and 1) * 2 + (3)) $and 3) * 4 + (vd $and 3)); ] { export *[register]:4 off; }
 wDq3: off is pfd_m3=0 & vd & vf_5_5=1 [ off = 0x5000 + 4 * (((vd >> 2) $and 7) * 16 + (vd $and 3) * 4 + ((((vd >> 6) $and 1) * 2 + (3)) $and 3)); ] { export *[register]:4 off; }
-gDs0: off is vd [ off = 0x5000 + 4 * (((vd >> 2) $and 7) * 16 + ((((vd >> 5) $and 3) + (0)) $and 3) * 4 + (vd $and 3)); ] { export *[register]:4 off; }
-gDp0: off is vd & vf_5_5=0 [ off = 0x5000 + 4 * (((vd >> 2) $and 7) * 16 + ((((vd >> 6) $and 1) * 2 + (0)) $and 3) * 4 + (vd $and 3)); ] { export *[register]:4 off; }
-gDp0: off is vd & vf_5_5=1 [ off = 0x5000 + 4 * (((vd >> 2) $and 7) * 16 + (vd $and 3) * 4 + ((((vd >> 6) $and 1) * 2 + (0)) $and 3)); ] { export *[register]:4 off; }
-gDp1: off is vd & vf_5_5=0 [ off = 0x5000 + 4 * (((vd >> 2) $and 7) * 16 + ((((vd >> 6) $and 1) * 2 + (1)) $and 3) * 4 + (vd $and 3)); ] { export *[register]:4 off; }
-gDp1: off is vd & vf_5_5=1 [ off = 0x5000 + 4 * (((vd >> 2) $and 7) * 16 + (vd $and 3) * 4 + ((((vd >> 6) $and 1) * 2 + (1)) $and 3)); ] { export *[register]:4 off; }
 gDt0: off is vd & vf_5_5=0 [ off = 0x5000 + 4 * (((vd >> 2) $and 7) * 16 + ((((vd >> 6) $and 1) * 1 + (0)) $and 3) * 4 + (vd $and 3)); ] { export *[register]:4 off; }
 gDt0: off is vd & vf_5_5=1 [ off = 0x5000 + 4 * (((vd >> 2) $and 7) * 16 + (vd $and 3) * 4 + ((((vd >> 6) $and 1) * 1 + (0)) $and 3)); ] { export *[register]:4 off; }
 gDt1: off is vd & vf_5_5=0 [ off = 0x5000 + 4 * (((vd >> 2) $and 7) * 16 + ((((vd >> 6) $and 1) * 1 + (1)) $and 3) * 4 + (vd $and 3)); ] { export *[register]:4 off; }
