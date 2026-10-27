@@ -59,7 +59,7 @@
 }
 
 # Special case of beq
-:b Rel16                        is prime=4 & rs=rt & Rel16 {
+:b Rel16                        is prime=4 & rs=0 & rt=0 & Rel16 {
     delayslot(1);
     goto Rel16;
 }
@@ -111,13 +111,8 @@
 }
 
 # 0100 0010 0000 0000 0000 0000 0001 1111
-:deret                          is prime=16 & bit25=1 & copfill=0x0 & fct=0x1F    unimpl
 
-# 0100 0001 011t tttt 0110 0000 0000 0000
-:di RT                          is prime=16 & mfmc0=0x0B & rd=0x0C & fct2=0x0 & bit5=0x0 & zero3=0x0 & RT     unimpl
 
-# 0100 0001 011t tttt 0110 0000 0010 0000
-:ei RT                          is prime=16 & mfmc0=0x0B & rd=0x0C & fct2=0x0 & bit5=0x01 & zero3=0x0 & RT    unimpl
 
 # 0100 0010 0000 0000 0000 0000 0001 1000
 :eret                           is prime=16 & bit25=1 & fct=24 & copfill=0 {
@@ -146,12 +141,9 @@
 }
 
 # 0111 1100 000t tttt dddd d000 0011 1011
-:rdhwr RT, RDsrc                is prime=31 & rs=0 & fct2=0 & fct=59 & RT & RDsrc {
-    RT = getHWRegister(RDsrc);
-}
 
 # 0111 1100 000t tttt dddd d000 1010 0000
-:wsbh RD, RTsrc                 is prime=31 & (fct=32 | fct=24) & fct2=2 & rs=0 & RTsrc & RD {
+:wsbh RD, RTsrc                 is prime=31 & fct=32 & fct2=2 & rs=0 & RTsrc & RD {
     tmp1:4 = RTsrc & 0xff;
     tmp2:4 = (RTsrc >> 8) & 0xff;
     tmp3:4 = (RTsrc >> 16) & 0xff;
@@ -160,7 +152,7 @@
 }
 
 # 0111 1100 000t tttt dddd d000 1110 0000
-:wsbw RD, RTsrc                 is prime=31 & (fct=32 | fct=24) & fct2=3 & rs =0 & RTsrc & RD {
+:wsbw RD, RTsrc                 is prime=31 & fct=32 & fct2=3 & rs =0 & RTsrc & RD {
     tmp1:4 = RTsrc & 0xff;
     tmp2:4 = (RTsrc >> 8) & 0xff;
     tmp3:4 = (RTsrc >> 16) & 0xff;
@@ -169,18 +161,18 @@
 }
 
 # 0111 1100 000t tttt dddd d100 0010 0000
-:seb RD, RTsrc                  is prime=31 & (fct=32 | fct=24) & fct2=16 & rs=0 & RTsrc & RD {
+:seb RD, RTsrc                  is prime=31 & fct=32 & fct2=16 & rs=0 & RTsrc & RD {
     RD = sext( RTsrc:1 );
 }
 
 # 0111 1100 000t tttt dddd d110 0010 0000
-:seh RD, RTsrc                  is prime=31 & (fct=32 | fct=24) & fct2=24 & rs=0 & RTsrc & RD {
+:seh RD, RTsrc                  is prime=31 & fct=32 & fct2=24 & rs=0 & RTsrc & RD {
     RD = sext( RTsrc:2 );
 }
 
 # 0111 1100 000t tttt dddd d100 0010 0000
 # Algorithm taken from https://graphics.stanford.edu/~seander/bithacks.html#ReverseParallel
-:bitrev RD, RTsrc               is prime=31 & (fct=32 | fct=24) & fct2=20 & rs=0 & RTsrc & RD {
+:bitrev RD, RTsrc               is prime=31 & fct=32 & fct2=20 & rs=0 & RTsrc & RD {
     tmp:4 = RTsrc;
     tmp = ((tmp >> 1) & 0x55555555) | ((tmp & 0x55555555) << 1);
     tmp = ((tmp >> 2) & 0x33333333) | ((tmp & 0x33333333) << 2);
@@ -203,16 +195,17 @@
 }
 
 # 0000 00ss sss0 0000 dddd dhhh hh00 1001
-:jalr RD, RSsrc                 is prime=0 & fct=9 & RSsrc & rt=0 & RD {
-    RD = inst_next;
-    delayslot( 1 );
+:jalr RD, RSsrc                 is prime=0 & fct=9 & RSsrc & rt=0 & RD & sa=0 {
+    # the target is read before the link register is written (rd may equal rs)
     tmp:4 = 0;
     ValCast(tmp,RSsrc);
+    RD = inst_next;
+    delayslot( 1 );
     call [tmp];
 }
 
 # Special case of jalr
-:jalr RSsrc                     is prime=0 & fct=9 & RSsrc & rt=0 & rd=31 {
+:jalr RSsrc                     is prime=0 & fct=9 & RSsrc & rt=0 & rd=31 & sa=0 {
     ra = inst_next;
     delayslot( 1 );
     tmp:4 = 0;
@@ -221,7 +214,7 @@
 }
 
 # 0000 00ss sss0 0000 0000 0hhh hh00 1000
-:jr RSsrc                       is prime=0 & fct=8 & RSsrc & rt=0 & rd=0 {
+:jr RSsrc                       is prime=0 & fct=8 & RSsrc & rt=0 & rd=0 & sa=0 {
     delayslot(1);
     tmp:4 = 0;
     ValCast(tmp,RSsrc);
@@ -297,9 +290,6 @@
 }
 
 # 0100 0001 010t tttt dddd d000 0000 0000
-:rdpgpr RD, RT                  is prime=16 & rs=10 & bigfunct=0 & RD & RT {
-    RD = getShadow(RT);
-}
 
 # 0000 0000 001t tttt dddd daaa aa00 0010
 :rotr RD, RTsrc, sa             is prime=0 & zero1=0 & bit21=1 & fct=2 & RD & RTsrc & sa {
@@ -395,83 +385,41 @@
 }
 
 # 0000 0000 0000 0000 0000 0yyy yy00 1111
-:sync scalar                    is prime=0 & fct=15 & szero=0 & stype [ scalar = stype + 0; ] {
-    SYNC(scalar:1);
+:sync                           is prime=0 & fct=15 & szero=0 & stype=0 {
+    # Ghidra-Rare: the Allegrex has only the plain SYNC (psp-as and psp-objdump reject a stype)
+    SYNC(0:1);
 }
 
 # 0000 01bb bbb1 1111 iiii iiii iiii iiii
-:synci OFF_BASE                 is prime=1 & OFF_BASE & synci=31  {
-}
 
 # 0000 00cc cccc cccc cccc cccc cc00 1100
-:syscall                        is prime=0 & fct=12 & breakcode {
+:syscall breakcode              is prime=0 & fct=12 & breakcode {
     tmp:4=breakcode;
     syscall(tmp);
 }
 
 # 0000 00ss ssst tttt cccc cccc cc11 0100
-:teq RSsrc, RTsrc               is prime=0 & fct=52 & RSsrc & RTsrc & code {
-    if (RSsrc != RTsrc) goto <done>;
-    tmp:2=code;
-    trap(tmp);
-    <done>
-}
 
 # 0000 00ss ssst tttt cccc cccc cc11 0000
-:tge RSsrc, RTsrc               is prime=0 & fct=48 & RSsrc & RTsrc & code {
-    if (RSsrc < RTsrc) goto <done>;
-    tmp:2=code;
-    trap(tmp);
-    <done>
-}
 
 # 0000 00ss ssst tttt cccc cccc cc11 0001
-:tgeu RSsrc, RTsrc              is prime=0 & fct=49 & RSsrc & RTsrc & code {
-    if (RSsrc < RTsrc) goto <done>;
-    tmp:2=code;
-    trap(tmp);
-    <done>
-}
 
-:tlbp      is prime=0x10  & bit25=1 & copfill=0x00 & fct=0x08  unimpl
-:tlbr      is prime=0x10  & bit25=1 & copfill=0x00 & fct=0x01  unimpl
-:tlbwi     is prime=0x10  & bit25=1 & copfill=0x00 & fct=0x02  unimpl
-:tlbwr     is prime=0x10  & bit25=1 & copfill=0x00 & fct=0x06  unimpl
+# Ghidra-Rare: the TLB operations (the PSP has no TLB; they act on hardware state outside the program)
+define pcodeop tlbOperation;
+:tlbp      is prime=0x10  & bit25=1 & copfill=0x00 & fct=0x08  { tlbOperation(8:1); }
+:tlbr      is prime=0x10  & bit25=1 & copfill=0x00 & fct=0x01  { tlbOperation(1:1); }
+:tlbwi     is prime=0x10  & bit25=1 & copfill=0x00 & fct=0x02  { tlbOperation(2:1); }
+:tlbwr     is prime=0x10  & bit25=1 & copfill=0x00 & fct=0x06  { tlbOperation(6:1); }
 
 # 0000 00ss ssst tttt cccc cccc cc11 0010
-:tlt RSsrc, RTsrc               is prime=0 & fct=50 & RSsrc & RTsrc & code {
-    if (RSsrc s>= RTsrc) goto <done>;
-    tmp:2=code;
-    trap(tmp);
-    <done>
-}
 
 # 0000 00ss ssst tttt cccc cccc cc11 0011
-:tltu RSsrc, RTsrc              is prime=0 & fct=51 & RSsrc & RTsrc & code {
-    if (RSsrc >= RTsrc) goto <done>;
-    tmp:2=code;
-    trap(tmp);
-    <done>
-}
 
 # 0000 00ss ssst tttt cccc cccc cc11 0110
-:tne RSsrc, RTsrc               is prime=0 & fct=54 & RSsrc & RTsrc & code {
-    if (RSsrc == RTsrc) goto <done>;
-    tmp:2=code;
-    trap(tmp);
-    <done>
-}
 
 # 0100 001c cccc cccc cccc cccc cc10 0000
-:wait                           is prime=16 & fct=32 & copfill & bit25=1  {
-    tmp:4 = copfill;
-    wait(tmp);
-}
 
 # 0100 0001 110t tttt dddd d000 0000 0000
-:wrpgpr  RD, RTsrc              is prime=16 & rs=14 & bigfunct=0 & RTsrc & RD  {
-    setShadow(RD, RTsrc);
-}
 
 # 0000 00ss ssst tttt dddd d000 0010 0110
 :xor RD, RSsrc, RTsrc           is prime=0 & fct=38 & RSsrc & RTsrc & RD & sa=0 {
@@ -491,7 +439,7 @@
 }
 
 # Special case of beql
-:bl Rel16                       is prime=20 & rs=rt & Rel16 {
+:bl Rel16                       is prime=20 & rs=0 & rt=0 & Rel16 {
     delayslot(1);
     goto Rel16;
 }
@@ -702,46 +650,16 @@
 }
 
 # 0000 01ss sss0 1100 iiii iiii iiii iiii
-:teqi RSsrc, simmed             is prime=1 & cond=12 & RSsrc & simmed {
-    if (RSsrc != simmed) goto <done>;
-    trap();
-    <done>
-}
 
 # 0000 01ss sss0 1000 iiii iiii iiii iiii
-:tgei RSsrc, simmed             is prime=1 & cond=8 & RSsrc & simmed {
-    if (RSsrc s< simmed) goto <done>;
-    trap();
-    <done>
-}
 
 # 0000 01ss sss0 1001 iiii iiii iiii iiii
-:tgeiu RSsrc, simmed            is prime=1 & cond=9 & RSsrc & simmed {
-    if (RSsrc < simmed) goto <done>;
-    trap();
-    <done>
-}
 
 # 0000 01ss sss0 1010 iiii iiii iiii iiii
-:tlti RSsrc, simmed             is prime=1 & cond=10 & RSsrc & simmed {
-    if (RSsrc s>= simmed) goto <done>;
-    trap();
-    <done>
-}
 
 # 0000 01ss sss0 1011 iiii iiii iiii iiii
-:tltiu RSsrc, simmed            is prime=1 & cond=11 & RSsrc & simmed {
-    if (RSsrc >= simmed) goto <done>;
-    trap();
-    <done>
-}
 
 # 0000 01ss sss0 1110 iiii iiii iiii iiii
-:tnei RSsrc, simmed             is prime=1 & cond=14 & RSsrc & simmed {
-    if (RSsrc == simmed) goto <done>;
-    trap();
-    <done>
-}
 
 # Allegrex specific
 
@@ -836,4 +754,66 @@
     lo = sum:4;
     sum = sum >> 32;
     hi = sum:4;
+}
+
+# Ghidra-Rare: COP0 condition branches (decoded by psp-objdump and rabbitizer). CPCOND0 is an external
+# input of the core, read through a pcodeop.
+define pcodeop cop0Condition;
+:bc0f Rel16                     is prime=16 & copop=8 & cond=0 & Rel16 {
+    c:1 = cop0Condition();
+    delayslot(1);
+    if (c != 0) goto inst_next;
+    goto Rel16;
+}
+:bc0t Rel16                     is prime=16 & copop=8 & cond=1 & Rel16 {
+    c:1 = cop0Condition();
+    delayslot(1);
+    if (c == 0) goto inst_next;
+    goto Rel16;
+}
+:bc0fl Rel16                    is prime=16 & copop=8 & cond=2 & Rel16 {
+    c:1 = cop0Condition();
+    if (c != 0) goto inst_next;
+    delayslot(1);
+    goto Rel16;
+}
+:bc0tl Rel16                    is prime=16 & copop=8 & cond=3 & Rel16 {
+    c:1 = cop0Condition();
+    if (c == 0) goto inst_next;
+    delayslot(1);
+    goto Rel16;
+}
+
+# Ghidra-Rare: the generic COP2 register moves (decoded by psp-objdump and rabbitizer). The Allegrex's COP2
+# is the VFPU, whose registers these encodings do not name; the transfers go through pcodeops.
+define pcodeop cop2DataRead;
+define pcodeop cop2DataWrite;
+define pcodeop cop2ControlRead;
+define pcodeop cop2ControlWrite;
+:mfc2 RT, cop2num               is prime=18 & copop=0 & RT & rd & bigfunct=0 [ cop2num = rd + 0; ] {
+    RT = cop2DataRead(rd:1);
+}
+:cfc2 RT, cop2num               is prime=18 & copop=2 & RT & rd & bigfunct=0 [ cop2num = rd + 0; ] {
+    RT = cop2ControlRead(rd:1);
+}
+:mtc2 RTsrc, cop2num            is prime=18 & copop=4 & RTsrc & rd & bigfunct=0 [ cop2num = rd + 0; ] {
+    cop2DataWrite(rd:1, RTsrc);
+}
+:ctc2 RTsrc, cop2num            is prime=18 & copop=6 & RTsrc & rd & bigfunct=0 [ cop2num = rd + 0; ] {
+    cop2ControlWrite(rd:1, RTsrc);
+}
+
+# Ghidra-Rare: the Allegrex debug instructions (psp-as and psp-objdump know them; rabbitizer does not).
+# The debug registers and the debug exception are hardware state outside the program: pcodeops.
+define pcodeop debugBreak;
+define pcodeop debugReturn;
+define pcodeop debugRegisterRead;
+define pcodeop debugRegisterWrite;
+:dbreak                         is prime=28 & rs=0 & rt=0 & rd=0 & sa=0 & fct=63 { debugBreak(); }
+:dret                           is prime=28 & rs=0 & rt=0 & rd=0 & sa=0 & fct=62 { debugReturn(); }
+:mfdr RT, drnum                 is prime=28 & rs=0 & RT & rd & sa=0 & fct=61 [ drnum = rd + 0; ] {
+    RT = debugRegisterRead(rd:1);
+}
+:mtdr RTsrc, drnum              is prime=28 & rs=4 & RTsrc & rd & sa=0 & fct=61 [ drnum = rd + 0; ] {
+    debugRegisterWrite(rd:1, RTsrc);
 }

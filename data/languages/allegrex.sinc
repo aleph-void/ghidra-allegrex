@@ -259,8 +259,6 @@ attach variables [ fs_fcr ] [
 # GPR
 
 RD: rd          is rd           { export rd; }
-RDsrc: rd       is rd           { export rd; }
-RDsrc: rd       is rd & rd=0    { export 0:4; }
 
 # RS: rs        is rs           { export rs; }
 RSsrc: rs       is rs           { export rs; }
@@ -302,15 +300,10 @@ ExtSize: mysize     is msbd         [ mysize = msbd + 1; ]            { tmp:1 = 
 
 # Floating point formats
 fmt1: "S"       is format=0x10   { }
-fmt1: "D"       is format=0x11   { }
-fmt1: "PS"      is format=0x16   { }
 
 fmt2: "S"       is format=0x10   { }
-fmt2: "D"       is format=0x11   { }
 
-fmt4: "D"       is format=0x11   { }
 fmt4: "W"       is format=0x14   { }
-fmt4: "L"       is format=0x15   { }
 
 # Custom Pcode Operations
 define pcodeop break;

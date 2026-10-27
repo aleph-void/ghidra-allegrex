@@ -1,5 +1,5 @@
 # 0100 01ff fff0 0000 ssss sddd dd00 0101
-:abs.s fd, fs               is prime=17 & fct=5 & fmt1 & format=0x10 & fs & fd {
+:abs.s fd, fs               is prime=17 & fct=5 & fmt1 & ft=0 & format=0x10 & fs & fd {
     fd[0,32] = abs( fs:4 );
 }
 
@@ -38,17 +38,16 @@
 
 # 0100 01ff fff0 0000 ssss sddd dd10 0100
 :cvt.w.s fd, fs             is prime=0x11 & ft=0x0 & fct=0x24 & fmt2 & fd & fs & format=0x10 {
-    # Convert from single float source to 32-bit integer word, using the fcsr RM rounding mode bits
-    rm_tmp:1 = fcsr[0,2]; # Get RM rounding mode bits
-    fs_tmp:4 = fs:4;
-    fs_cvt_tmp:4 = 0;
-    if (rm_tmp == 0) goto <do_round>;
-      fs_cvt_tmp = floor(fs_tmp); # RM is 1, no rounding, and floor returns a float
-      goto <done>;
-    <do_round>
-      fs_cvt_tmp = round(fs_tmp); # round returns a float
-    <done>
-    fd[0,32] = trunc(fs_cvt_tmp); # trunc returns an integer
+    # Ghidra-Rare: the FCSR RM bits select nearest-even (0), toward zero (1), toward +inf (2), toward -inf (3);
+    # upstream used round() (ties away from zero) for 0 and floor for 1..3
+    x:4 = fs:4;
+    rm:4 = zext(fcsr[0,2]);
+    fl:4 = floor(x); ce:4 = ceil(x); tr:4 = trunc(x);
+    df:4 = x f- fl;
+    fi:4 = trunc(fl);
+    ne:4 = (zext(df f> 0x3f000000:4) * (fi + 1)) | (zext(df f< 0x3f000000:4) * fi) |
+           (zext(df f== 0x3f000000:4) * (fi + (fi & 1)));
+    fd[0,32] = (zext(rm == 0) * ne) | (zext(rm == 1) * tr) | (zext(rm == 2) * trunc(ce)) | (zext(rm == 3) * fi);
 }
 
 # 0100 01ff ffft tttt ssss sddd dd00 0011
@@ -75,7 +74,7 @@
 }
 
 # 0100 01ff fff0 0000 ssss sddd dd00 0110
-:mov.s fd, fs               is prime=17 & fct=6 & fmt1 & fs & fd & format=0x10 {
+:mov.s fd, fs               is prime=17 & fct=6 & fmt1 & ft=0 & fs & fd & format=0x10 {
     fd[0,32] = fs:4;
 }
 
@@ -91,14 +90,19 @@
 }
 
 # 0100 01ff fff0 0000 ssss sddd dd00 0111
-:neg.s fd, fs               is prime=17 & fct=7 & fmt1 & fs & fd & format=0x10 {
+:neg.s fd, fs               is prime=17 & fct=7 & fmt1 & ft=0 & fs & fd & format=0x10 {
     fd[0,32] = f- fs:4;
 }
 
 # 0100 01ff fff0 0000 ssss sddd dd00 1100
 :round.w.s fd, fs           is prime=17 & ft=0 & fct=12 & fmt2 & fd & fs & format=0x10 {
-    fd_tmp:4 = round(fs:4);
-    fd = trunc(fd_tmp);
+    # Ghidra-Rare: round to nearest, ties to even (upstream: round(), ties away from zero)
+    x:4 = fs:4;
+    fl:4 = floor(x);
+    df:4 = x f- fl;
+    fi:4 = trunc(fl);
+    fd = (zext(df f> 0x3f000000:4) * (fi + 1)) | (zext(df f< 0x3f000000:4) * fi) |
+         (zext(df f== 0x3f000000:4) * (fi + (fi & 1)));
 }
 
 # 0100 01ff fff0 0000 ssss sddd dd00 0100
@@ -158,84 +162,84 @@
 macro trapIfNaN(x1, x2) { }
 macro trapIfSNaN(x1, x2) { }
 
-:c.f.s fs, ft               is prime=17 & fct=48 & fmt1 & format=0x10 & fs & ft {
+:c.f.s fs, ft               is prime=17 & fct=48 & fmt1 & fd=0 & format=0x10 & fs & ft {
     trapIfSNaN(fs:4, ft:4); # Trap if either operand is a Signaling NaN
     fcsr[23,1] = 0; # Always false
 }
 
-:c.un.s fs, ft              is prime=17 & fct=49 & fmt1 & format=0x10 & fs & ft {
+:c.un.s fs, ft              is prime=17 & fct=49 & fmt1 & fd=0 & format=0x10 & fs & ft {
     trapIfSNaN(fs:4, ft:4);
     fcsr[23,1] = nan(fs:4) || nan(ft:4); # True if operands are NaN
 }
 
-:c.eq.s fs, ft              is prime=17 & fct=50 & fmt1 & format=0x10 & fs & ft {
+:c.eq.s fs, ft              is prime=17 & fct=50 & fmt1 & fd=0 & format=0x10 & fs & ft {
     trapIfSNaN(fs:4, ft:4);
     fcsr[23,1] = (fs:4 f== ft:4);
 }
 
-:c.ueq.s fs, ft              is prime=17 & fct=51 & fmt1 & format=0x10 & fs & ft {
+:c.ueq.s fs, ft              is prime=17 & fct=51 & fmt1 & fd=0 & format=0x10 & fs & ft {
     trapIfSNaN(fs:4, ft:4);
     fcsr[23,1] = (fs:4 f== ft:4);
 }
 
-:c.olt.s fs, ft              is prime=17 & fct=52 & fmt1 & format=0x10 & fs & ft {
+:c.olt.s fs, ft              is prime=17 & fct=52 & fmt1 & fd=0 & format=0x10 & fs & ft {
     trapIfSNaN(fs:4, ft:4);
     fcsr[23,1] = (fs:4 f< ft:4);
 }
 
-:c.ult.s fs, ft              is prime=17 & fct=53 & fmt1 & format=0x10 & fs & ft {
+:c.ult.s fs, ft              is prime=17 & fct=53 & fmt1 & fd=0 & format=0x10 & fs & ft {
     trapIfSNaN(fs:4, ft:4);
     fcsr[23,1] = (fs:4 f< ft:4) || nan(fs:4) || nan(ft:4); # Less than or NaN
 }
 
-:c.ole.s fs, ft              is prime=17 & fct=54 & fmt1 & format=0x10 & fs & ft {
+:c.ole.s fs, ft              is prime=17 & fct=54 & fmt1 & fd=0 & format=0x10 & fs & ft {
     trapIfSNaN(fs:4, ft:4);
     fcsr[23,1] = (fs:4 f<= ft:4);
 }
 
-:c.ule.s fs, ft              is prime=17 & fct=55 & fmt1 & format=0x10 & fs & ft {
+:c.ule.s fs, ft              is prime=17 & fct=55 & fmt1 & fd=0 & format=0x10 & fs & ft {
     trapIfSNaN(fs:4, ft:4);
     fcsr[23,1] = (fs:4 f<= ft:4) || nan(fs:4) || nan(ft:4); # Less than or equal or NaN
 }
 
 # The pre-release 6 floating point compare instructions that trap if either operand is NaN (either QNaN or SNaN)
 
-:c.sf.s fs, ft              is prime=17 & fct=56 & fmt1 & fs & ft & format=0x10 {
+:c.sf.s fs, ft              is prime=17 & fct=56 & fmt1 & fd=0 & fs & ft & format=0x10 {
     trapIfNaN(fs:4, ft:4);
     fcsr[23,1] = 0; # Always false
 }
 
-:c.ngle.s fs, ft              is prime=17 & fct=57 & fmt1 & format=0x10 & fs & ft {
+:c.ngle.s fs, ft              is prime=17 & fct=57 & fmt1 & fd=0 & format=0x10 & fs & ft {
     trapIfNaN(fs:4, ft:4);
     fcsr[23,1] = nan(fs:4) || nan(ft:4);
 }
 
-:c.seq.s fs, ft              is prime=17 & fct=58 & fmt1 & format=0x10 & fs & ft {
+:c.seq.s fs, ft              is prime=17 & fct=58 & fmt1 & fd=0 & format=0x10 & fs & ft {
     trapIfNaN(fs:4, ft:4);
     fcsr[23,1] = (fs:4 f== ft:4);
 }
 
-:c.ngl.s fs, ft              is prime=17 & fct=59 & fmt1 & format=0x10 & fs & ft {
+:c.ngl.s fs, ft              is prime=17 & fct=59 & fmt1 & fd=0 & format=0x10 & fs & ft {
     trapIfNaN(fs:4, ft:4);
     fcsr[23,1] = (fs:4 f== ft:4) || nan(fs:4) || nan(ft:4);
 }
 
-:c.lt.s fs, ft              is prime=17 & fct=60 & fmt1 & format=0x10 & fs & ft {
+:c.lt.s fs, ft              is prime=17 & fct=60 & fmt1 & fd=0 & format=0x10 & fs & ft {
     trapIfNaN(fs:4, ft:4);
     fcsr[23,1] = (fs:4 f< ft:4);
 }
 
-:c.nge.s fs, ft              is prime=17 & fct=61 & fmt1 & format=0x10 & fs & ft {
+:c.nge.s fs, ft              is prime=17 & fct=61 & fmt1 & fd=0 & format=0x10 & fs & ft {
     trapIfNaN(fs:4, ft:4);
     fcsr[23,1] = (fs:4 f< ft:4) || nan(fs:4) || nan(ft:4);
 }
 
-:c.le.s fs, ft              is prime=17 & fct=62 & fmt1 & format=0x10 & fs & ft {
+:c.le.s fs, ft              is prime=17 & fct=62 & fmt1 & fd=0 & format=0x10 & fs & ft {
     trapIfNaN(fs:4, ft:4);
     fcsr[23,1] = (fs:4 f<= ft:4);
 }
 
-:c.ngt.s fs, ft              is prime=17 & fct=63 & fmt1 & format=0x10 & fs & ft {
+:c.ngt.s fs, ft              is prime=17 & fct=63 & fmt1 & fd=0 & format=0x10 & fs & ft {
     trapIfNaN(fs:4, ft:4);
     fcsr[23,1] = (fs:4 f<= ft:4) || nan(fs:4) || nan(ft:4); # Less than or equal or NaN
 }
